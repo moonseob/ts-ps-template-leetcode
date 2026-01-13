@@ -18,7 +18,11 @@ consistent environment to solve problems with the same runtime assumptions.
 pnpm install
 ```
 
-`pnpm install` runs the `preinstall` script to align Node with `.node-version`.
+If you're using pnpm, run this to align Node with `.node-version`:
+
+```bash
+pnpm use-version
+```
 
 ## Usage
 

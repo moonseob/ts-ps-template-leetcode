@@ -2,7 +2,7 @@
     "name": "ts-ps-template-leetcode",
     "description": "A local TypeScript environment that mirrors LeetCode's runtime with opinionated formatting rules.",
     "scripts": {
-        "preinstall": "pnpm env use --global $(cat .node-version)",
+        "use-version": "pnpm env use --global $(cat .node-version)",
         "format": "biome format --write .",
         "new": "tsx --tsconfig tsconfig.json ./tools/new-problem.ts",
         "watch": "tsx --tsconfig tsconfig.json --watch --import setup.ts"
