@@ -1,0 +1,23 @@
+{
+	"name": "ts-ps-template",
+	"version": "1.0.0",
+	"description": "TypeScript PS (problem solving) template",
+	"scripts": {
+		"build": "tsc",
+		"watch": "node scripts/watch.js"
+	},
+	"keywords": [
+		"typescript",
+		"ps",
+		"algorithm",
+		"template"
+	],
+	"author": "moonseob",
+	"license": "MIT",
+	"private": true,
+	"devDependencies": {
+		"@types/node": "^24.10.1",
+		"tsx": "^4.20.4",
+		"typescript": "^5.9.3"
+	}
+}

@@ -1,0 +1,15 @@
+node_modules
+.ts-runner
+.DS_Store
+dist
+coverage
+*.log
+.env
+.vscode
+
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+pnpm-workspace.yaml
+
+src
