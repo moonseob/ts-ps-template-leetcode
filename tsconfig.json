@@ -1,15 +1,11 @@
 {
-	"compilerOptions": {
-		"target": "es2019",
-		"module": "commonjs",
-		"lib": ["es2019", "dom"],
-		"esModuleInterop": true,
-		"strict": true,
-		"sourceMap": false,
-		"inlineSourceMap": false,
-		"declaration": false,
-		"declarationMap": false,
-		"removeComments": true
-	},
-	"include": ["src/**/*"]
+    "compilerOptions": {
+        "alwaysStrict": true,
+        "allowSyntheticDefaultImports": true,
+        "strictBindCallApply": true,
+        "strictFunctionTypes": true,
+        "target": "ES2024",
+        "strictNullChecks": true
+    },
+    "include": ["src/**/*", "setup.ts"]
 }

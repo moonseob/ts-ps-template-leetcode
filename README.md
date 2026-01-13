@@ -1,31 +1,45 @@
-# TypeScript PS Template
+# TypeScript PS Template for LeetCode
 
-A lightweight template for solving programming problems with TypeScript.
-Runs with `tsx`, so `.ts` files execute without a build step.
+A local TypeScript environment that mirrors LeetCode's runtime with opinionated formatting rules.
+
+## Why
+
+LeetCode's TypeScript runtime can be inconvenient to reproduce locally. This template provides a
+consistent environment to solve problems with the same runtime assumptions.
+
+## Prerequisites
+
+- Node.js `22.14.0` (see `.node-version`)
+- pnpm (recommended)
 
 ## Setup
 
 ```bash
-npm install
-# or: pnpm install
-# or: yarn install
+pnpm install
+pnpm run setup
 ```
 
-## Run
+## Usage
 
 ```bash
-npm run watch src/leetcode.com/problems/maximum-average-subarray-i.ts
-# or: pnpm run watch src/leetcode.com/problems/maximum-average-subarray-i.ts
-# or: yarn run watch src/leetcode.com/problems/maximum-average-subarray-i.ts
+pnpm watch -- src/your-problem.ts
 ```
 
-## Structure
+## Project Structure
 
-- `src/` solutions
-- `src/template.ts` stdin/stdout template
-- `scripts/watch.js` auto re-run on save
+- `src/` - problem solutions
+- `.node-version` - pinned Node version
+- `biome.json` - formatter settings
+- `.editorconfig` - editor consistency
 
-## Notes
+## Scripts
 
-- Use `src/template.ts` as a starting point for stdin handling.
-- `tsconfig.json` contains minimal TypeScript defaults.
+- `pnpm setup` - use the Node version from `.node-version`
+- `pnpm format` - format with Biome
+- `pnpm watch -- <file>` - run a problem file with hot reload
+
+## Configuration
+
+- Biome
+- EditorConfig
+- Dependencies aligned to LeetCode's TypeScript runtime

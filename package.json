@@ -1,23 +1,48 @@
 {
-	"name": "ts-ps-template",
-	"version": "1.0.0",
-	"description": "TypeScript PS (problem solving) template",
-	"scripts": {
-		"build": "tsc",
-		"watch": "node scripts/watch.js"
-	},
-	"keywords": [
-		"typescript",
-		"ps",
-		"algorithm",
-		"template"
-	],
-	"author": "moonseob",
-	"license": "MIT",
-	"private": true,
-	"devDependencies": {
-		"@types/node": "^24.10.1",
-		"tsx": "^4.20.4",
-		"typescript": "^5.9.3"
-	}
+    "name": "ts-ps-template-leetcode",
+    "description": "A LeetCode problem solving deck for TypeScript with opinionated formatting rules",
+    "scripts": {
+        "setup": "pnpm env use --global $(cat .node-version)",
+        "format": "biome format --write .",
+        "watch": "tsx --watch --import setup.ts"
+    },
+    "keywords": [
+        "typescript",
+        "ps",
+        "problem solving",
+        "algorithm",
+        "template",
+        "leetcode"
+    ],
+    "author": "moonseob",
+    "license": "MIT",
+    "engines": {
+        "node": "22.14.0"
+    },
+    "engineStrict": true,
+    "private": true,
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/moonseob/ts-ps-template-leetcode.git"
+    },
+    "dependencies": {
+        "@datastructures-js/binary-search-tree": "5.4.0",
+        "@datastructures-js/deque": "1.0.8",
+        "@datastructures-js/graph": "5.3.1",
+        "@datastructures-js/heap": "4.3.7",
+        "@datastructures-js/linked-list": "6.1.4",
+        "@datastructures-js/priority-queue": "6.3.5",
+        "@datastructures-js/queue": "4.3.0",
+        "@datastructures-js/set": "4.2.2",
+        "@datastructures-js/stack": "3.1.6",
+        "@datastructures-js/trie": "4.2.3",
+        "lodash": "4.17.21"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "2.3.11",
+        "@types/lodash": "^4.17.23",
+        "@types/node": "^22.14.0",
+        "tsx": "^4.20.4",
+        "typescript": "5.7.3"
+    }
 }
