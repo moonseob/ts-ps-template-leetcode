@@ -2,10 +2,16 @@
     "compilerOptions": {
         "alwaysStrict": true,
         "allowSyntheticDefaultImports": true,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./*"]
+        },
         "strictBindCallApply": true,
         "strictFunctionTypes": true,
         "target": "ES2024",
-        "strictNullChecks": true
+        "strictNullChecks": true,
+        "module": "nodenext",
+        "moduleResolution": "nodenext"
     },
-    "include": ["src/**/*", "setup.ts"]
+    "include": ["src/**/*", "tools/**/*", "setup.ts"]
 }

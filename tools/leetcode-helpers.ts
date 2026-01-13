@@ -1,0 +1,102 @@
+import { LinkedListNode } from "@datastructures-js/linked-list";
+
+export class ListNode extends LinkedListNode {
+    constructor(val?: number, next?: ListNode | null) {
+        super(val ?? 0, next ?? undefined);
+    }
+
+    get val(): number {
+        return this.getValue();
+    }
+
+    set val(value: number) {
+        this.setValue(value);
+    }
+
+    get next(): ListNode | null {
+        return (this.getNext() as ListNode) ?? null;
+    }
+
+    set next(next: ListNode | null) {
+        this.setNext((next ?? undefined) as LinkedListNode);
+    }
+}
+
+export const buildList = (values: number[] | null): ListNode | null => {
+    if (!values || values.length === 0) return null;
+    const dummy = new ListNode(0);
+    let current = dummy;
+    for (const value of values) {
+        current.next = new ListNode(value);
+        current = current.next;
+    }
+    return dummy.next;
+};
+
+export const buildListWithCycle = (values: number[] | null, pos: number): ListNode | null => {
+    if (!values || values.length === 0) return null;
+    const nodes = values.map((value) => new ListNode(value));
+    for (let i = 0; i < nodes.length - 1; i++) {
+        nodes[i]!.next = nodes[i + 1]!;
+    }
+    if (pos >= 0 && pos < nodes.length) {
+        nodes[nodes.length - 1]!.next = nodes[pos]!;
+    }
+    return nodes[0]!;
+};
+
+export const listToArray = (head: ListNode | null, limit = 10000): number[] => {
+    const result: number[] = [];
+    const seen = new Set<ListNode>();
+    while (head && !seen.has(head) && result.length < limit) {
+        result.push(head.val);
+        seen.add(head);
+        head = head.next;
+    }
+    return result;
+};
+
+export class TreeNode {
+    val: number;
+    left: TreeNode | null;
+    right: TreeNode | null;
+    constructor(val?: number, left?: TreeNode | null, right?: TreeNode | null) {
+        this.val = val === undefined ? 0 : val;
+        this.left = left === undefined ? null : left;
+        this.right = right === undefined ? null : right;
+    }
+}
+
+export const buildTree = (values: Array<number | null> | null): TreeNode | null => {
+    if (!values || values.length === 0) return null;
+    const nodes = values.map((value) => (value === null ? null : new TreeNode(value)));
+    for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+        if (!node) continue;
+        const leftIdx = 2 * i + 1;
+        const rightIdx = 2 * i + 2;
+        if (leftIdx < nodes.length) node.left = nodes[leftIdx];
+        if (rightIdx < nodes.length) node.right = nodes[rightIdx];
+    }
+    return nodes[0];
+};
+
+export const treeToArray = (root: TreeNode | null): Array<number | null> => {
+    if (!root) return [];
+    const result: Array<number | null> = [];
+    const queue: Array<TreeNode | null> = [root];
+    while (queue.length > 0) {
+        const node = queue.shift();
+        if (node) {
+            result.push(node.val);
+            queue.push(node.left);
+            queue.push(node.right);
+        } else {
+            result.push(null);
+        }
+    }
+    while (result.length > 0 && result[result.length - 1] === null) {
+        result.pop();
+    }
+    return result;
+};

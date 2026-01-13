@@ -1,10 +1,11 @@
 {
     "name": "ts-ps-template-leetcode",
-    "description": "A LeetCode problem solving deck for TypeScript with opinionated formatting rules",
+    "description": "A local TypeScript environment that mirrors LeetCode's runtime with opinionated formatting rules.",
     "scripts": {
-        "setup": "pnpm env use --global $(cat .node-version)",
+        "preinstall": "pnpm env use --global $(cat .node-version)",
         "format": "biome format --write .",
-        "watch": "tsx --watch --import setup.ts"
+        "new": "tsx --tsconfig tsconfig.json ./tools/new-problem.ts",
+        "watch": "tsx --tsconfig tsconfig.json --watch --import setup.ts"
     },
     "keywords": [
         "typescript",
