@@ -346,14 +346,14 @@ const extractExamplesFromText = (text: string) => {
 };
 
 const extractExampleBlocks = (html: string) => {
-    const examplePattern = /<strong>\s*Example\s*\d+\s*:?\s*<\/strong>/gi;
+    const examplePattern = /<(strong|b)>\s*Example\s*\d+\s*:?\s*<\/\1>/gi;
     const matches = [...html.matchAll(examplePattern)];
     if (matches.length === 0) {
         const examples = extractExamplesFromText(htmlToPlain(html));
         return { examples, strippedHtml: html };
     }
 
-    const constraintsMatch = [...html.matchAll(/<strong>\s*Constraints\s*:?\s*<\/strong>/gi)][0];
+    const constraintsMatch = [...html.matchAll(/<(strong|b)>\s*Constraints\s*:?\s*<\/\1>/gi)][0];
     const rangesToRemove: Array<{ start: number; end: number }> = [];
     const examples: ExampleBlock[] = [];
 
