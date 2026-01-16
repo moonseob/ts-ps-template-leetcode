@@ -39,14 +39,68 @@ const decodeHtml = (input: string) =>
         .replace(/&#39;/g, "'")
         .replace(/&nbsp;/g, " ");
 
+const captureCodeSpans = (html: string) => {
+    const codeSpans: string[] = [];
+    const withPlaceholders = html.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_, code) => {
+        const index = codeSpans.length;
+        codeSpans.push(code);
+        return `__CODE_SPAN_${index}__`;
+    });
+    return { withPlaceholders, codeSpans };
+};
+
+const restoreCodeSpans = (text: string, codeSpans: string[]) =>
+    codeSpans.reduce((acc, raw, idx) => {
+        const placeholder = new RegExp(`__CODE_SPAN_${idx}__`, "g");
+        const cleaned = decodeHtml(raw.replace(/<[^>]+>/g, "")).trim();
+        return acc.replace(placeholder, `\`${cleaned}\``);
+    }, text);
+
+// Replace HTML emphasis tags with markdown while preserving intentional trailing spaces (e.g., "Follow-up: ").
+const replaceEmphasisTags = (value: string) => {
+    const replaceStrong = (input: string) =>
+        input.replace(/<(strong|b)[^>]*>([\s\S]*?)<\/\1>(\s*)/gi, (_m, _tag, content, space) => {
+            const decoded = decodeHtml(content).replace(/\u00a0/g, " ");
+            const trimmed = decoded.trim();
+            const hadTrailing = /[ \t\r\n]+$/.test(decoded);
+            const trailing = space || hadTrailing ? " " : "";
+            return `**${trimmed}**${trailing}`;
+        });
+    const replaceEm = (input: string) =>
+        input.replace(/<(em|i)[^>]*>([\s\S]*?)<\/\1>(\s*)/gi, (_m, _tag, content, space) => {
+            const decoded = decodeHtml(content).replace(/\u00a0/g, " ");
+            const trimmed = decoded.trim();
+            const hadTrailing = /[ \t\r\n]+$/.test(decoded);
+            const trailing = space || hadTrailing ? " " : "";
+            return `_${trimmed}_${trailing}`;
+        });
+    return replaceEm(replaceStrong(value));
+};
+
 const htmlToText = (html: string) => {
-    let text = html;
+    const { withPlaceholders, codeSpans } = captureCodeSpans(html);
+    let text = withPlaceholders;
+
+    // Headings to Markdown-style prefixes.
+    text = text.replace(/<h([1-6])[^>]*>/gi, (_, level) => `\n${"#".repeat(Number(level))} `);
+    text = text.replace(/<\/h[1-6]>/gi, "\n\n");
+
+    // Inline emphasis.
+    text = replaceEmphasisTags(text);
+
+    // Block separators.
     text = text.replace(/<\/p>\s*/gi, "\n\n");
     text = text.replace(/<br\s*\/?>/gi, "\n");
     text = text.replace(/<li>\s*/gi, "- ");
     text = text.replace(/<\/li>\s*/gi, "\n");
+
+    // Drop preformatted blocks from description body.
     text = text.replace(/<pre>[\s\S]*?<\/pre>/gi, "");
+
+    // Strip remaining tags.
     text = text.replace(/<[^>]+>/g, "");
+
+    // Normalize whitespace and decode entities.
     text = decodeHtml(text);
     text = text.replace(/\r/g, "");
     text = text
@@ -56,11 +110,18 @@ const htmlToText = (html: string) => {
         .join("\n");
     text = text.replace(/[ \t]+\n/g, "\n");
     text = text.replace(/\n{3,}/g, "\n\n");
-    return text.trim();
+    text = text.trim();
+    return restoreCodeSpans(text, codeSpans);
 };
 
 const htmlToPlain = (html: string) => {
-    let text = html;
+    const { withPlaceholders, codeSpans } = captureCodeSpans(html);
+    let text = withPlaceholders;
+
+    // Keep labels parseable while preserving emphasis elsewhere.
+    text = text.replace(/<(strong|b)[^>]*>([^<]+?:)\s*<\/\1>/gi, "$2");
+    text = replaceEmphasisTags(text);
+
     text = text.replace(/<\/p>\s*/gi, "\n");
     text = text.replace(/<br\s*\/?>/gi, "\n");
     text = text.replace(/<pre>/gi, "\n");
@@ -72,7 +133,8 @@ const htmlToPlain = (html: string) => {
     text = text.replace(/\r/g, "");
     text = text.replace(/[ \t]+\n/g, "\n");
     text = text.replace(/\n{3,}/g, "\n\n");
-    return text.trim();
+    text = text.trim();
+    return restoreCodeSpans(text, codeSpans);
 };
 
 const stripTags = (html: string) => decodeHtml(html.replace(/<[^>]+>/g, ""));
@@ -272,6 +334,12 @@ const extractOutputs = (content: string) => {
         const match = text.match(/Output:\s*([^\n]+)/i);
         if (match) outputs.push(match[1].trim());
     }
+    if (outputs.length > 0) return outputs;
+
+    const textExamples = extractExamplesFromText(htmlToPlain(content));
+    for (const example of textExamples) {
+        if (example.output) outputs.push(example.output);
+    }
     return outputs;
 };
 
@@ -346,14 +414,14 @@ const extractExamplesFromText = (text: string) => {
 };
 
 const extractExampleBlocks = (html: string) => {
-    const examplePattern = /<(strong|b)>\s*Example\s*\d+\s*:?\s*<\/\1>/gi;
+    const examplePattern = /<(strong|b)\b[^>]*>\s*Example\s*\d+\s*:?\s*<\/\1>/gi;
     const matches = [...html.matchAll(examplePattern)];
     if (matches.length === 0) {
         const examples = extractExamplesFromText(htmlToPlain(html));
         return { examples, strippedHtml: html };
     }
 
-    const constraintsMatch = [...html.matchAll(/<(strong|b)>\s*Constraints\s*:?\s*<\/\1>/gi)][0];
+    const constraintsMatch = [...html.matchAll(/<(strong|b)\b[^>]*>\s*Constraints\s*:?\s*<\/\1>/gi)][0];
     const rangesToRemove: Array<{ start: number; end: number }> = [];
     const examples: ExampleBlock[] = [];
 
@@ -446,13 +514,25 @@ const formatExampleDoc = (
     explanation: string | undefined,
 ) => {
     const lines: string[] = [`Example ${index + 1}`];
-    if (input) lines.push(`Input: ${input}`);
-    if (output) lines.push(`Output: ${output}`);
-    if (explanation) {
-        const parts = explanation.split("\n");
-        lines.push(`Explanation: ${parts[0]}`);
+    const wrapCode = (value: string) => (value.includes("`") ? value : `\`${value}\``);
+    const pushCodeLines = (label: string, value: string) => {
+        const parts = value.split("\n").filter((part) => part.trim().length > 0);
+        if (parts.length === 0) return;
+        lines.push(`${label}: ${wrapCode(parts[0])}`);
         for (const part of parts.slice(1)) {
-            lines.push(`  ${part}`);
+            lines.push(`  ${wrapCode(part)}`);
+        }
+    };
+
+    if (input) pushCodeLines("Input", input);
+    if (output) pushCodeLines("Output", output);
+    if (explanation) {
+        const parts = explanation.split("\n").filter((part) => part.trim().length > 0);
+        if (parts.length > 0) {
+            lines.push(`Explanation: ${wrapCode(parts[0])}`);
+            for (const part of parts.slice(1)) {
+                lines.push(`  ${wrapCode(part)}`);
+            }
         }
     }
     const wrappedLines = wrapJSDocLines(lines, 120 - 3);
@@ -462,7 +542,7 @@ const formatExampleDoc = (
 
 const generateAsserts = (
     functionName: string | null,
-    examples: string[][],
+    inputExamples: string[][],
     outputs: string[],
     params: ParamMeta[],
     returnType: string,
@@ -482,9 +562,9 @@ const generateAsserts = (
     const returnIsTreeNode = isTreeNodeType(returnType);
 
     const lines: string[] = [];
-    const exampleCount = Math.min(examples.length, outputs.length);
+    const exampleCount = Math.min(inputExamples.length, outputs.length);
     for (let i = 0; i < exampleCount; i++) {
-        const rawInputs = examples[i];
+        const rawInputs = inputExamples[i] ?? [];
         const exampleBlock = exampleBlocks[i];
         const fallbackInput =
             rawInputs && rawInputs.length > 0
@@ -586,7 +666,7 @@ const generateAsserts = (
 };
 
 const formatJSDoc = (title: string, id: string, description: string, url: string) => {
-    const lines = [`${title} (#${id})`, url, "", ...description.split("\n")];
+    const lines = [`# ${title} (#${id})`, url, "", ...description.split("\n")];
     const wrappedLines = wrapJSDocLines(lines, 120 - 3);
     const body = wrappedLines.map((line) => (line ? ` * ${line}` : " *")).join("\n");
     return `/**\n${body}\n */`;
