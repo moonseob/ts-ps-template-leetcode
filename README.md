@@ -32,11 +32,28 @@ and verify with `node -v` that you are on Node 22.
 ### 2) Generate a problem file
 
 ```bash
-pnpm new
+# slug
+pnpm new -- two-sum
+
+# full URL (quote to avoid shell parsing issues)
+pnpm new -- "https://leetcode.com/problems/two-sum/"
+
+# omit `--` if your package manager supports it
+pnpm new two-sum
+
+# override output directory
+pnpm new -- two-sum --out src/notes
+
+# overwrite existing file
+pnpm new -- two-sum --force
 ```
 
-You will be prompted for a LeetCode URL or slug. The generator creates
-`src/problems/<slug>.ts`.
+The generator creates `src/problems/<slug>.ts`.
+
+Options:
+
+- `--out <dir>`: override the output directory (default: `src/problems`)
+- `--force`: overwrite if the file already exists
 
 ### 3) Solve and run tests
 

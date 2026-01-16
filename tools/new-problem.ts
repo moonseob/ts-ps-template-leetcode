@@ -1,6 +1,5 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
-import readline from "node:readline";
 
 const GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
 const COLOR = {
@@ -73,22 +72,53 @@ const parseSlug = (raw: string) => {
     }
 };
 
-const promptInput = async (message: string) => {
-    const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-    });
-    const answer = await new Promise<string>((resolve) => {
-        rl.question(message, (value) => resolve(value));
-    });
-    rl.close();
-    return answer.trim();
+const parseArgs = (rawArgs: string[]) => {
+    const options: {
+        outDir: string;
+        force: boolean;
+        help: boolean;
+        target: string | null;
+    } = {
+        outDir: "src/problems",
+        force: false,
+        help: false,
+        target: null,
+    };
+
+    for (let i = 0; i < rawArgs.length; i++) {
+        const arg = rawArgs[i];
+        if (arg === "--help" || arg === "-h") {
+            options.help = true;
+            continue;
+        }
+        if (arg === "--out" || arg === "-o") {
+            const value = rawArgs[i + 1];
+            if (value && !value.startsWith("-")) {
+                options.outDir = value;
+                i++;
+            }
+            continue;
+        }
+        if (arg === "--force" || arg === "-f") {
+            options.force = true;
+            continue;
+        }
+        if (!arg.startsWith("-") && !options.target) {
+            options.target = arg;
+        }
+    }
+
+    return options;
 };
 
-const promptConfirm = async (message: string) => {
-    const answer = (await promptInput(message)).toLowerCase();
-    return answer === "y" || answer === "yes";
-};
+const USAGE = `Usage:
+  pnpm new -- <url-or-slug> [--out <dir>] [--force]
+
+Options:
+  -o, --out <dir>   Override output directory (default: src/problems)
+  -f, --force       Overwrite existing file
+  -h, --help        Show this help message
+`;
 
 const fetchQuestion = async (slug: string): Promise<QuestionData> => {
     const query = `
@@ -355,21 +385,14 @@ const formatJSDoc = (title: string, id: string, description: string, url: string
 };
 
 const main = async () => {
-    const args = process.argv.slice(2);
-    const outIndex = args.findIndex((arg) => arg === "--out");
-    let outDir = "src/problems";
-    if (outIndex !== -1 && args[outIndex + 1]) {
-        outDir = args[outIndex + 1];
-    } else {
-        const inputDir = await promptInput("Output directory (default: src/problems): ");
-        if (inputDir) outDir = inputDir;
+    const { outDir, force, help, target } = parseArgs(process.argv.slice(2));
+    if (help) {
+        console.log(USAGE);
+        process.exit(0);
     }
-    const force = args.includes("--force") || args.includes("-f");
-
-    console.log("Paste a LeetCode URL or slug.");
-    const target = await promptInput("> ");
     if (!target) {
-        console.error("No input provided.");
+        console.error("Missing LeetCode URL or slug.");
+        console.error(USAGE.trimEnd());
         process.exit(1);
     }
 
@@ -383,8 +406,11 @@ const main = async () => {
     try {
         await stat(outPath);
         if (!force) {
-            const overwrite = await promptConfirm(`File already exists: ${outPath}\nOverwrite? (y/N): `);
-            if (!overwrite) process.exit(1);
+            console.error(`${icon.warn} File already exists: ${outPath}`);
+            console.error(
+                `${icon.info} Use --force to overwrite (e.g. pnpm new -- ${slug} --force)`,
+            );
+            process.exit(1);
         }
     } catch {
         // ok
