@@ -51,7 +51,7 @@ const htmlToText = (html: string) => {
     text = text.replace(/\r/g, "");
     text = text
         .split("\n")
-        .map((line) => line.replace(/\s+$/g, ""))
+        .map((line) => line.replace(/\s+$/g, "").replace(/^\s+(-\s)/, "$1"))
         .filter((line) => !/^Example\s+\d+:\s*$/.test(line.trim()))
         .join("\n");
     text = text.replace(/[ \t]+\n/g, "\n");
@@ -59,7 +59,53 @@ const htmlToText = (html: string) => {
     return text.trim();
 };
 
+const htmlToPlain = (html: string) => {
+    let text = html;
+    text = text.replace(/<\/p>\s*/gi, "\n");
+    text = text.replace(/<br\s*\/?>/gi, "\n");
+    text = text.replace(/<pre>/gi, "\n");
+    text = text.replace(/<\/pre>\s*/gi, "\n");
+    text = text.replace(/<li>\s*/gi, "- ");
+    text = text.replace(/<\/li>\s*/gi, "\n");
+    text = text.replace(/<[^>]+>/g, "");
+    text = decodeHtml(text);
+    text = text.replace(/\r/g, "");
+    text = text.replace(/[ \t]+\n/g, "\n");
+    text = text.replace(/\n{3,}/g, "\n\n");
+    return text.trim();
+};
+
 const stripTags = (html: string) => decodeHtml(html.replace(/<[^>]+>/g, ""));
+
+const wrapTextLine = (line: string, maxWidth: number) => {
+    if (!line) return [""];
+    const available = Math.max(1, maxWidth);
+    const leadingMatch = line.match(/^\s+/);
+    const leading = leadingMatch ? leadingMatch[0] : "";
+    const content = line.slice(leading.length);
+    if (content.length <= available) return [line];
+
+    const words = content.split(/\s+/).filter(Boolean);
+    const wrapped: string[] = [];
+    let current = "";
+
+    for (const word of words) {
+        if (!current) {
+            current = word;
+            continue;
+        }
+        if (current.length + 1 + word.length <= available) {
+            current += ` ${word}`;
+        } else {
+            wrapped.push(current);
+            current = word;
+        }
+    }
+    if (current) wrapped.push(current);
+    return wrapped.map((chunk) => `${leading}${chunk}`);
+};
+
+const wrapJSDocLines = (lines: string[], maxWidth: number) => lines.flatMap((line) => wrapTextLine(line, maxWidth));
 
 const parseSlug = (raw: string) => {
     if (!raw) return null;
@@ -237,6 +283,128 @@ const chunk = <T>(arr: T[], size: number) => {
     return chunks;
 };
 
+type ExampleBlock = { input?: string; output?: string; explanation?: string };
+
+const extractExamplesFromText = (text: string) => {
+    const examples: ExampleBlock[] = [];
+    const normalized = text.replace(/\r/g, "");
+    const headings = [...normalized.matchAll(/^Example\s+\d+\s*:/gim)];
+
+    const captureLabel = (block: string, label: string) => {
+        const regex = new RegExp(
+            `${label}:\\s*([\\s\\S]*?)(?=\\n(?:Input|Output|Explanation|Constraints|Follow-up|Note|Notes):|$)`,
+            "i",
+        );
+        const match = block.match(regex);
+        if (!match) return undefined;
+        const cleaned = match[1]
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .join("\n");
+        return cleaned || undefined;
+    };
+
+    if (headings.length > 0) {
+        for (let i = 0; i < headings.length; i++) {
+            const start = headings[i].index ?? 0;
+            const end = headings[i + 1]?.index ?? normalized.length;
+            const block = normalized.slice(start, end);
+            examples.push({
+                input: captureLabel(block, "Input"),
+                output: captureLabel(block, "Output"),
+                explanation: captureLabel(block, "Explanation"),
+            });
+        }
+        return examples;
+    }
+
+    const fallback = [
+        ...normalized.matchAll(
+            /Input:\s*([\s\S]*?)\nOutput:\s*([^\n]+)(?:\nExplanation:\s*([\s\S]*?))?(?=\n(?:Input:|Constraints:|$))/gi,
+        ),
+    ];
+    for (const match of fallback) {
+        const input = match[1]
+            ?.split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .join("\n");
+        const output = match[2]?.trim();
+        const explanation = match[3]
+            ?.split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .join("\n");
+        examples.push({
+            input: input || undefined,
+            output: output || undefined,
+            explanation: explanation || undefined,
+        });
+    }
+    return examples;
+};
+
+const extractExampleBlocks = (html: string) => {
+    const examplePattern = /<strong>\s*Example\s*\d+\s*:?\s*<\/strong>/gi;
+    const matches = [...html.matchAll(examplePattern)];
+    if (matches.length === 0) {
+        const examples = extractExamplesFromText(htmlToPlain(html));
+        return { examples, strippedHtml: html };
+    }
+
+    const constraintsMatch = [...html.matchAll(/<strong>\s*Constraints\s*:?\s*<\/strong>/gi)][0];
+    const rangesToRemove: Array<{ start: number; end: number }> = [];
+    const examples: ExampleBlock[] = [];
+
+    const captureLabel = (text: string, label: string) => {
+        const regex = new RegExp(
+            `${label}:\\s*([\\s\\S]*?)(?=\\n(?:Input|Output|Explanation|Constraints|Follow-up|Note|Notes):|$)`,
+            "i",
+        );
+        const match = text.match(regex);
+        if (!match) return undefined;
+        const cleaned = match[1]
+            .replace(/\r/g, "")
+            .split("\n")
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .join("\n");
+        return cleaned || undefined;
+    };
+
+    for (let i = 0; i < matches.length; i++) {
+        const match = matches[i];
+        const start = (match.index ?? 0) + match[0].length;
+        const nextMatch = matches[i + 1];
+        const end =
+            nextMatch?.index ??
+            (constraintsMatch?.index && constraintsMatch.index > start ? constraintsMatch.index : html.length);
+        const section = html.slice(start, end);
+        const text = htmlToPlain(section);
+        examples.push({
+            input: captureLabel(text, "Input"),
+            output: captureLabel(text, "Output"),
+            explanation: captureLabel(text, "Explanation"),
+        });
+        rangesToRemove.push({ start: match.index ?? 0, end });
+    }
+
+    if (examples.every((example) => !example.input && !example.output && !example.explanation)) {
+        return { examples: extractExamplesFromText(htmlToPlain(html)), strippedHtml: html };
+    }
+
+    let stripped = "";
+    let lastIndex = 0;
+    for (const range of rangesToRemove) {
+        stripped += html.slice(lastIndex, range.start);
+        lastIndex = range.end;
+    }
+    stripped += html.slice(lastIndex);
+
+    return { examples, strippedHtml: stripped };
+};
+
 const ensureDir = async (dir: string) => {
     try {
         const info = await stat(dir);
@@ -271,6 +439,27 @@ const getFunctionParamCount = (code: string, functionName: string | null) => {
     return null;
 };
 
+const formatExampleDoc = (
+    index: number,
+    input: string | undefined,
+    output: string | undefined,
+    explanation: string | undefined,
+) => {
+    const lines: string[] = [`Example ${index + 1}`];
+    if (input) lines.push(`Input: ${input}`);
+    if (output) lines.push(`Output: ${output}`);
+    if (explanation) {
+        const parts = explanation.split("\n");
+        lines.push(`Explanation: ${parts[0]}`);
+        for (const part of parts.slice(1)) {
+            lines.push(`  ${part}`);
+        }
+    }
+    const wrappedLines = wrapJSDocLines(lines, 120 - 3);
+    const body = wrappedLines.map((line) => ` * ${line}`).join("\n");
+    return `/**\n${body}\n */`;
+};
+
 const generateAsserts = (
     functionName: string | null,
     examples: string[][],
@@ -278,6 +467,7 @@ const generateAsserts = (
     params: ParamMeta[],
     returnType: string,
     listCyclePair: boolean,
+    exampleBlocks: ExampleBlock[],
 ) => {
     const helpersUsed = new Set<string>();
     if (!functionName) {
@@ -294,8 +484,18 @@ const generateAsserts = (
     const lines: string[] = [];
     const exampleCount = Math.min(examples.length, outputs.length);
     for (let i = 0; i < exampleCount; i++) {
-        lines.push(`// Example ${i + 1}`);
         const rawInputs = examples[i];
+        const exampleBlock = exampleBlocks[i];
+        const fallbackInput =
+            rawInputs && rawInputs.length > 0
+                ? rawInputs.length === 1
+                    ? rawInputs[0]
+                    : rawInputs.join(", ")
+                : undefined;
+        const docInput = exampleBlock?.input ?? fallbackInput;
+        const docOutput = exampleBlock?.output ?? outputs[i];
+        const docExplanation = exampleBlock?.explanation;
+        lines.push(formatExampleDoc(i, docInput, docOutput, docExplanation));
 
         let argsList: string[] = [];
         if (listCyclePair && paramTypes.length >= 1 && isListNodeType(paramTypes[0])) {
@@ -355,6 +555,7 @@ const generateAsserts = (
             const expected = valueToCode(normalized);
             helpersUsed.add("listToArray");
             lines.push(`assert.deepStrictEqual(listToArray(${functionName}(${args})), ${expected});`);
+            lines.push("");
             continue;
         }
 
@@ -363,6 +564,7 @@ const generateAsserts = (
             const expected = valueToCode(normalized);
             helpersUsed.add("treeToArray");
             lines.push(`assert.deepStrictEqual(treeToArray(${functionName}(${args})), ${expected});`);
+            lines.push("");
             continue;
         }
 
@@ -370,6 +572,11 @@ const generateAsserts = (
         const useDeep = typeof outputValue.value === "object" || Array.isArray(outputValue.value);
         const assertFn = useDeep ? "deepStrictEqual" : "strictEqual";
         lines.push(`assert.${assertFn}(${functionName}(${args}), ${expected});`);
+        lines.push("");
+    }
+
+    while (lines.length > 0 && lines[lines.length - 1] === "") {
+        lines.pop();
     }
 
     if (lines.length === 0) {
@@ -380,7 +587,8 @@ const generateAsserts = (
 
 const formatJSDoc = (title: string, id: string, description: string, url: string) => {
     const lines = [`${title} (#${id})`, url, "", ...description.split("\n")];
-    const body = lines.map((line) => (line ? ` * ${line}` : " *")).join("\n");
+    const wrappedLines = wrapJSDocLines(lines, 120 - 3);
+    const body = wrappedLines.map((line) => (line ? ` * ${line}` : " *")).join("\n");
     return `/**\n${body}\n */`;
 };
 
@@ -407,9 +615,7 @@ const main = async () => {
         await stat(outPath);
         if (!force) {
             console.error(`${icon.warn} File already exists: ${outPath}`);
-            console.error(
-                `${icon.info} Use --force to overwrite (e.g. pnpm new -- ${slug} --force)`,
-            );
+            console.error(`${icon.info} Use --force to overwrite (e.g. pnpm new -- ${slug} --force)`);
             process.exit(1);
         }
     } catch {
@@ -448,7 +654,8 @@ const main = async () => {
         usesListNode && inferredParamCount === 1 && outputs.length > 0 && exampleLines.length === outputs.length * 2;
     const inputExamples = chunk(exampleLines, listCyclePair ? 2 : inferredParamCount);
 
-    const description = htmlToText(question.content);
+    const { examples, strippedHtml } = extractExampleBlocks(question.content);
+    const description = htmlToText(strippedHtml);
     const jsdoc = formatJSDoc(
         question.title,
         question.questionId,
@@ -462,6 +669,7 @@ const main = async () => {
         params,
         returnType,
         listCyclePair,
+        examples,
     );
 
     const importLines = ['import assert from "node:assert";'];
@@ -488,7 +696,7 @@ const main = async () => {
     if (helperTypeImports.length > 0) {
         importLines.push(`import type { ${helperTypeImports.join(", ")} } from "${helperImportPath}";`);
     }
-    const contentParts = [jsdoc, "", ...importLines, "", snippet.trim(), "", asserts, ""];
+    const contentParts = [...importLines, "", jsdoc, snippet.trim(), "", asserts, ""];
     const content = contentParts.join("\n");
 
     await ensureDir(outDir);
