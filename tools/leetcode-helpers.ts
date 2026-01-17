@@ -1,24 +1,10 @@
-import { LinkedListNode } from "@datastructures-js/linked-list";
+export class ListNode {
+    val: number;
+    next: ListNode | null;
 
-export class ListNode extends LinkedListNode {
     constructor(val?: number, next?: ListNode | null) {
-        super(val ?? 0, next ?? undefined);
-    }
-
-    get val(): number {
-        return this.getValue();
-    }
-
-    set val(value: number) {
-        this.setValue(value);
-    }
-
-    get next(): ListNode | null {
-        return (this.getNext() as ListNode) ?? null;
-    }
-
-    set next(next: ListNode | null) {
-        this.setNext((next ?? undefined) as LinkedListNode);
+        this.val = val ?? 0;
+        this.next = next ?? null;
     }
 }
 
