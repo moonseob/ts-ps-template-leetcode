@@ -128,6 +128,17 @@ assert.deepStrictEqual(twoSum([3,3], 6), [0,1]);
 - EditorConfig
 - Dependencies aligned to LeetCode's TypeScript runtime
 
+## 🧰 VS Code Workspace Settings
+
+The workspace `.vscode/settings.json` keeps local editing behavior aligned with the tooling in this repo:
+
+- `editor.defaultFormatter: "biomejs.biome"` - always format with Biome so the editor matches the CLI.
+- `editor.formatOnPaste` / `editor.formatOnSave`: true - run Biome format automatically when pasting or saving.
+- `editor.codeActionsOnSave.source.fixAll.biome: "explicit"` - apply Biome's fix-all rules on manual saves without surprising changes on auto-save.
+- `editor.codeActionsOnSave.source.organizeImports.biome: "explicit"` - reorder/remove imports on save while still requiring an explicit save action.
+- `editor.rulers: [120]` - soft guide at 120 characters, matching the preferred line length for problems and tests.
+- `search.useIgnoreFiles: false` - include `.gitignore`d files (such as generated `src/problems`) in workspace search results.
+
 ## 📚 Datastructures Quick Guide
 
 Use these packages when a problem benefits from a specific data structure:
