@@ -39,6 +39,11 @@ const decodeHtml = (input: string) =>
         .replace(/&#39;/g, "'")
         .replace(/&nbsp;/g, " ");
 
+const replaceSupSubTags = (value: string) =>
+    value
+        .replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, "^$1")
+        .replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, "_$1");
+
 const captureCodeSpans = (html: string) => {
     const codeSpans: string[] = [];
     const withPlaceholders = html.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_, code) => {
@@ -52,7 +57,8 @@ const captureCodeSpans = (html: string) => {
 const restoreCodeSpans = (text: string, codeSpans: string[]) =>
     codeSpans.reduce((acc, raw, idx) => {
         const placeholder = new RegExp(`__CODE_SPAN_${idx}__`, "g");
-        const cleaned = decodeHtml(raw.replace(/<[^>]+>/g, "")).trim();
+        const withSupSub = replaceSupSubTags(raw);
+        const cleaned = decodeHtml(withSupSub.replace(/<[^>]+>/g, "")).trim();
         return acc.replace(placeholder, `\`${cleaned}\``);
     }, text);
 
@@ -80,6 +86,8 @@ const replaceEmphasisTags = (value: string) => {
 const htmlToText = (html: string) => {
     const { withPlaceholders, codeSpans } = captureCodeSpans(html);
     let text = withPlaceholders;
+
+    text = replaceSupSubTags(text);
 
     // Headings to Markdown-style prefixes.
     text = text.replace(/<h([1-6])[^>]*>/gi, (_, level) => `\n${"#".repeat(Number(level))} `);
@@ -117,6 +125,8 @@ const htmlToText = (html: string) => {
 const htmlToPlain = (html: string) => {
     const { withPlaceholders, codeSpans } = captureCodeSpans(html);
     let text = withPlaceholders;
+
+    text = replaceSupSubTags(text);
 
     // Keep labels parseable while preserving emphasis elsewhere.
     text = text.replace(/<(strong|b)[^>]*>([^<]+?:)\s*<\/\1>/gi, "$2");
