@@ -561,15 +561,16 @@ const generateAsserts = (
 ) => {
     const helpersUsed = new Set<string>();
     if (!functionName) {
-        return {
-            code: "// TODO: Add asserts for class-based or custom API problems.",
-            helpersUsed,
-        };
+    return {
+        code: "// TODO: Add asserts for class-based or custom API problems.",
+        helpersUsed,
+    };
     }
 
     const paramTypes = params.map((param) => param.type);
     const returnIsListNode = isListNodeType(returnType);
     const returnIsTreeNode = isTreeNodeType(returnType);
+    const returnIsVoid = returnType.toLowerCase().includes("void");
 
     const lines: string[] = [];
     const exampleCount = Math.min(inputExamples.length, outputs.length);
@@ -637,6 +638,34 @@ const generateAsserts = (
         if (!outputValue.ok) {
             lines.push(`// TODO: Unable to parse example output ${i + 1}.`);
             continue;
+        }
+
+        if (returnIsVoid) {
+            const argName = `input${i + 1}`;
+            const callArgs = [...argsList];
+            if (callArgs.length > 0) {
+                callArgs[0] = argName;
+                lines.push(`const ${argName} = ${argsList[0]};`);
+                lines.push(`${functionName}(${callArgs.join(", ")});`);
+                if (isListNodeType(paramTypes[0] ?? "")) {
+                    helpersUsed.add("listToArray");
+                    const expected = outputValue.value === null ? [] : outputValue.value;
+                    lines.push(`assert.deepStrictEqual(listToArray(${argName}), ${valueToCode(expected)});`);
+                } else if (isTreeNodeType(paramTypes[0] ?? "")) {
+                    helpersUsed.add("treeToArray");
+                    const expected = outputValue.value === null ? [] : outputValue.value;
+                    lines.push(`assert.deepStrictEqual(treeToArray(${argName}), ${valueToCode(expected)});`);
+                } else {
+                    lines.push(`assert.deepStrictEqual(${argName}, ${valueToCode(outputValue.value)});`);
+                }
+                lines.push("");
+                continue;
+            } else {
+                lines.push(`${functionName}();`);
+                lines.push("// TODO: No arguments to validate after in-place call.");
+                lines.push("");
+                continue;
+            }
         }
 
         const args = argsList.join(", ");
