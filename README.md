@@ -1,226 +1,80 @@
 # TypeScript PS Starter for LeetCode
 
-A local TypeScript environment that mirrors LeetCode's runtime with opinionated formatting and a **built-in problem + test case generator**.
+A local TypeScript environment that mirrors LeetCode's runtime with a built-in problem and test-case generator.
 
-## 💡 Why
+## Usage
 
-LeetCode's TypeScript runtime can be inconvenient to reproduce locally. This template provides:
-
-- A consistent local runtime that matches LeetCode's assumptions
-- A single flow from generation → solution → test run
-- One file per problem, so there is no extra fixture or boilerplate management
-
-## ⚡ Quick Start
-
-### 1) Install
+### 1. Install
 
 ```bash
 git clone https://github.com/moonseob/ts-ps-template-leetcode
+cd ts-ps-template-leetcode
 npm install
 ```
 
-Equivalent install commands:
+This project targets Node `22`.
+
+### 2. Generate a problem file
 
 ```bash
-pnpm install
-yarn install
-bun install
-```
-
-If you use pnpm, you can align Node with `.node-version` using:
-
-```bash
-pnpm use-version
-```
-
-The `node` version is pinned in `package.json` to match LeetCode's runtime.
-If you do not use pnpm, set the Node version with your preferred tool (nvm, fnm, asdf, etc.)
-and verify with `node -v` that you are on Node 22.
-
-### 2) Generate a problem file
-
-```bash
-# slug
 npm run new -- two-sum
 
-# full URL (quote to avoid shell parsing issues)
+# You can also pass the full problem URL.
 npm run new -- "https://leetcode.com/problems/two-sum/"
-
-# override output directory
-npm run new -- two-sum --out src/notes
-
-# overwrite existing file
-npm run new -- two-sum --force
 ```
 
-The generator creates `src/problems/<slug>.ts`.
-
-Options:
-
-- `--out <dir>`: override the output directory (default: `src/problems`)
-- `--force`: overwrite if the file already exists
-
-### 3) Solve and run tests
+### 3. Solve and run
 
 ```bash
 # run once
-npm run solve -- <slug>
+npm run solve -- two-sum
 
-# run once with a file path
-npm run solve -- src/problems/<slug>.ts
-
-# watch current file and rerun on save
-npm run watch -- <slug>
-
-# watch with a file path
-npm run watch -- src/problems/<slug>.ts
+# rerun automatically on save
+npm run watch -- two-sum
 ```
 
-Equivalent commands:
+`solve` and `watch` both accept:
+- slug: `two-sum`
+- URL: `https://leetcode.com/problems/two-sum/`
+- file path: `src/problems/two-sum.ts`
 
-- pnpm: `pnpm solve -- <slug>`, `pnpm watch -- <slug>`, `pnpm new -- <slug>`
-- yarn: `yarn solve <slug>`, `yarn watch <slug>`, `yarn new <slug>`
-- bun: `bun run solve -- <slug>`, `bun run watch -- <slug>`, `bun run new -- <slug>`
+Optional flag:
+- `--timeout <ms>` (default: `3000`)
 
-Useful options:
+### Output examples
 
-- `--timeout <ms>`: kill execution if it exceeds the limit (default: `3000`)
+Correct:
 
-The generated file includes:
-
-- The problem statement as [JSDoc](https://jsdoc.app)
-- Example tests using [`node:assert`](https://nodejs.org/api/assert.html) (best-effort parsing)
-- A solution function stub
-
-### 4) CLI runtime behavior
-
-The CLI wraps `assert` calls and prints concise output tailored for problem solving:
-
-- Always prints a summary (for example, `PASS 3/3 assertions (12ms)`), so successful runs are explicit.
-- Assertion failures show compact `expected` and `actual` values only.
-- Runtime errors are shortened to the essential message + first relevant source line.
-- Infinite loops or very slow cases are cut off by timeout with a clear `TIMEOUT` result.
-
-This keeps feedback close to what LeetCode users usually need while debugging quickly.
-
-Below is an example generated for [two-sum](https://leetcode.com/problems/two-sum/).
-
-```ts
-import assert from "node:assert";
-
-/**
- * # Two Sum (#1)
- * https://leetcode.com/problems/two-sum/
- *
- * Given an array of integers `nums` and an integer `target`, return _indices of the two numbers such that they add up
- * to `target`_.
- *
- * You may assume that each input would have **_exactly_ one solution**, and you may not use the _same_ element twice.
- *
- * You can return the answer in any order.
- *
- * **Constraints:**
- *
- * - `2 <= nums.length <= 10^4`
- * - `-10^9 <= nums[i] <= 10^9`
- * - `-10^9 <= target <= 10^9`
- * - **Only one valid answer exists.**
- *
- * **Follow-up:** Can you come up with an algorithm that is less than `O(n^2)` time complexity?
- */
-function twoSum(nums: number[], target: number): number[] {
-
-};
-
-/**
- * Example 1
- * Input: `nums = [2,7,11,15], target = 9`
- * Output: `[0,1]`
- * Explanation: `Because nums[0] + nums[1] == 9, we return [0, 1].`
- */
-assert.deepStrictEqual(twoSum([2,7,11,15], 9), [0,1]);
-
-/**
- * Example 2
- * Input: `nums = [3,2,4], target = 6`
- * Output: `[1,2]`
- */
-assert.deepStrictEqual(twoSum([3,2,4], 6), [1,2]);
-
-/**
- * Example 3
- * Input: `nums = [3,3], target = 6`
- * Output: `[0,1]`
- */
-assert.deepStrictEqual(twoSum([3,3], 6), [0,1]);
-
+```diff
+RUN src/problems/two-sum.ts (timeout=3000ms)
+PASS 3/3 assertions (12ms)
 ```
 
-## ⚙️ Configuration
+Wrong answer:
 
-- Biome
-- EditorConfig
-- Dependencies aligned to LeetCode's TypeScript runtime
-
-## 🧰 VS Code Workspace Settings
-
-The workspace `.vscode/settings.json` keeps local editing behavior aligned with the tooling in this repo:
-
-- `editor.defaultFormatter: "biomejs.biome"` - always format with Biome so the editor matches the CLI.
-- `editor.formatOnPaste` / `editor.formatOnSave`: true - run Biome format automatically when pasting or saving.
-- `editor.codeActionsOnSave.source.fixAll.biome: "explicit"` - apply Biome's fix-all rules on manual saves without surprising changes on auto-save.
-- `editor.codeActionsOnSave.source.organizeImports.biome: "explicit"` - reorder/remove imports on save while still requiring an explicit save action.
-- `editor.rulers: [120]` - soft guide at 120 characters, matching the preferred line length for problems and tests.
-- `search.useIgnoreFiles: false` - include `.gitignore`d files (such as generated `src/problems`) in workspace search results.
-
-## 📚 Datastructures Quick Guide
-
-Use these packages when a problem benefits from a specific data structure:
-
-- `@datastructures-js/queue` / `@datastructures-js/deque` - BFS, sliding window
-- `@datastructures-js/priority-queue` / `@datastructures-js/heap` - shortest paths, greedy
-- `@datastructures-js/stack` - monotonic stack, parsing
-- `@datastructures-js/trie` - prefix search, word dictionary
-- `@datastructures-js/graph` - explicit graph modeling
-- `@datastructures-js/binary-search-tree` - ordered set/map
-
-Note: For Binary Search Tree, Trie, and Graph, import manually only when needed because their names can conflict with LeetCode problem types.
-
-### Quick Examples
-
-Queue (BFS):
-
-```ts
-import { Queue } from "@datastructures-js/queue";
-
-const queue = new Queue<number>();
-queue.enqueue(1);
-queue.enqueue(2);
-while (!queue.isEmpty()) {
-    const node = queue.dequeue();
-    // process node
-}
+```diff
+ASSERTION FAILED #2 (deepStrictEqual)
+expected: [ 1, 2 ]
+actual:   [ 2, 1 ]
+FAIL 2/3 assertions passed (9ms)
 ```
 
-Priority Queue (min-heap):
+Run time exceeded:
 
-```ts
-import { MinPriorityQueue } from "@datastructures-js/priority-queue";
-
-const pq = new MinPriorityQueue<number>({ priority: (value) => value });
-pq.enqueue(3);
-pq.enqueue(1);
-pq.enqueue(2);
-const smallest = pq.dequeue().element;
+```diff
+RUN src/problems/some-problem.ts (timeout=3000ms)
+TIMEOUT exceeded 3000ms (src/problems/some-problem.ts)
 ```
 
-Trie (prefix lookup):
+## Command Matrix
 
-```ts
-import { Trie } from "@datastructures-js/trie";
+| Package manager | New | Solve | Watch |
+| --- | --- | --- | --- |
+| npm | `npm run new -- <slug>` | `npm run solve -- <slug>` | `npm run watch -- <slug>` |
+| pnpm | `pnpm new -- <slug>` | `pnpm solve -- <slug>` | `pnpm watch -- <slug>` |
+| yarn | `yarn new <slug>` | `yarn solve <slug>` | `yarn watch <slug>` |
+| bun | `bun run new -- <slug>` | `bun run solve -- <slug>` | `bun run watch -- <slug>` |
 
-const trie = new Trie();
-trie.insert("apple");
-trie.insert("app");
-const hasApp = trie.search("app");
-```
+## Reference
+
+For editor settings and data-structure package guidance, see [`docs/reference.md`](./docs/reference.md).
