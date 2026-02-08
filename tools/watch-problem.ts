@@ -15,12 +15,12 @@ const color = {
 const paint = (text: string, c: keyof typeof color) => `${color[c]}${text}${color.reset}`;
 
 const usage = `Usage:
-  pnpm watch -- <problem-file-or-slug> [--timeout <ms>]
+  npm run watch -- <problem-file-or-slug> [--timeout <ms>]
 
 Examples:
-  pnpm watch -- two-sum
-  pnpm watch -- src/problems/two-sum.ts
-  pnpm watch -- src/problems/two-sum.ts --timeout 5000
+  npm run watch -- two-sum
+  npm run watch -- src/problems/two-sum.ts
+  npm run watch -- src/problems/two-sum.ts --timeout 5000
 `;
 
 const parseArgs = (args: string[]) => {
@@ -77,10 +77,14 @@ const resolveProblemTarget = (target: string) => {
 
 const runOnce = (target: string, timeoutMs: number) =>
     new Promise<number>((resolve) => {
-        const child = spawn("pnpm", ["-s", "tsx", "tools/run-problem.ts", target, "--timeout", String(timeoutMs)], {
-            stdio: "inherit",
-            env: process.env,
-        });
+        const child = spawn(
+            process.execPath,
+            ["--import", "tsx", "tools/run-problem.ts", target, "--timeout", String(timeoutMs)],
+            {
+                stdio: "inherit",
+                env: process.env,
+            },
+        );
 
         child.on("error", () => resolve(1));
         child.on("exit", (code) => resolve(code ?? 1));

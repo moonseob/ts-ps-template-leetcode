@@ -14,12 +14,12 @@ const color = {
 const paint = (text: string, c: keyof typeof color) => `${color[c]}${text}${color.reset}`;
 
 const usage = `Usage:
-  pnpm solve -- <problem-file-or-slug> [--timeout <ms>]
+  npm run solve -- <problem-file-or-slug> [--timeout <ms>]
 
 Examples:
-  pnpm solve -- two-sum
-  pnpm solve -- src/problems/two-sum.ts
-  pnpm solve -- src/problems/two-sum.ts --timeout 5000
+  npm run solve -- two-sum
+  npm run solve -- src/problems/two-sum.ts
+  npm run solve -- src/problems/two-sum.ts --timeout 5000
 `;
 
 const parseArgs = (args: string[]) => {
@@ -93,7 +93,7 @@ const main = async () => {
 
     console.log(`${paint("RUN", "cyan")} ${relativeTarget} (timeout=${timeoutMs}ms)`);
 
-    const child = spawn("pnpm", ["-s", "tsx", "--tsconfig", "tsconfig.json", "--import", "setup.ts", resolvedTarget], {
+    const child = spawn(process.execPath, ["--import", "tsx", "--import", "./setup.ts", resolvedTarget], {
         stdio: "inherit",
         env: process.env,
     });

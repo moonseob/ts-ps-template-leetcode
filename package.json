@@ -4,9 +4,9 @@
     "scripts": {
         "use-version": "pnpm env use --global $(cat .node-version)",
         "format": "biome format --write .",
-        "new": "pnpm -s tsx --tsconfig tsconfig.json ./tools/new-problem.ts",
-        "solve": "pnpm -s tsx --tsconfig tsconfig.json ./tools/run-problem.ts",
-        "watch": "pnpm -s tsx --tsconfig tsconfig.json ./tools/watch-problem.ts"
+        "new": "node --import tsx ./tools/new-problem.ts",
+        "solve": "node --import tsx ./tools/run-problem.ts",
+        "watch": "node --import tsx ./tools/watch-problem.ts"
     },
     "keywords": [
         "typescript",

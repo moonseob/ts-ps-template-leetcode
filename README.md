@@ -16,10 +16,18 @@ LeetCode's TypeScript runtime can be inconvenient to reproduce locally. This tem
 
 ```bash
 git clone https://github.com/moonseob/ts-ps-template-leetcode
-pnpm install # or your preferred package manager
+npm install
 ```
 
-If you use pnpm, you can easily align Node with `.node-version` using:
+Equivalent install commands:
+
+```bash
+pnpm install
+yarn install
+bun install
+```
+
+If you use pnpm, you can align Node with `.node-version` using:
 
 ```bash
 pnpm use-version
@@ -33,19 +41,16 @@ and verify with `node -v` that you are on Node 22.
 
 ```bash
 # slug
-pnpm new -- two-sum
+npm run new -- two-sum
 
 # full URL (quote to avoid shell parsing issues)
-pnpm new -- "https://leetcode.com/problems/two-sum/"
-
-# omit `--` if your package manager supports it
-pnpm new two-sum
+npm run new -- "https://leetcode.com/problems/two-sum/"
 
 # override output directory
-pnpm new -- two-sum --out src/notes
+npm run new -- two-sum --out src/notes
 
 # overwrite existing file
-pnpm new -- two-sum --force
+npm run new -- two-sum --force
 ```
 
 The generator creates `src/problems/<slug>.ts`.
@@ -59,17 +64,23 @@ Options:
 
 ```bash
 # run once
-pnpm solve -- <slug>
+npm run solve -- <slug>
 
 # run once with a file path
-pnpm solve -- src/problems/<slug>.ts
+npm run solve -- src/problems/<slug>.ts
 
 # watch current file and rerun on save
-pnpm watch -- <slug>
+npm run watch -- <slug>
 
 # watch with a file path
-pnpm watch -- src/problems/<slug>.ts
+npm run watch -- src/problems/<slug>.ts
 ```
+
+Equivalent commands:
+
+- pnpm: `pnpm solve -- <slug>`, `pnpm watch -- <slug>`, `pnpm new -- <slug>`
+- yarn: `yarn solve <slug>`, `yarn watch <slug>`, `yarn new <slug>`
+- bun: `bun run solve -- <slug>`, `bun run watch -- <slug>`, `bun run new -- <slug>`
 
 Useful options:
 
@@ -110,12 +121,12 @@ import assert from "node:assert";
  *
  * **Constraints:**
  *
- * - `2 <= nums.length <= 104`
- * - `-109 <= nums[i] <= 109`
- * - `-109 <= target <= 109`
+ * - `2 <= nums.length <= 10^4`
+ * - `-10^9 <= nums[i] <= 10^9`
+ * - `-10^9 <= target <= 10^9`
  * - **Only one valid answer exists.**
  *
- * **Follow-up:** Can you come up with an algorithm that is less than `O(n2)` time complexity?
+ * **Follow-up:** Can you come up with an algorithm that is less than `O(n^2)` time complexity?
  */
 function twoSum(nums: number[], target: number): number[] {
 

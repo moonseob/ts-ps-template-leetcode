@@ -228,7 +228,7 @@ const parseArgs = (rawArgs: string[]) => {
 };
 
 const USAGE = `Usage:
-  pnpm new -- <url-or-slug> [--out <dir>] [--force]
+  npm run new -- <url-or-slug> [--out <dir>] [--force]
 
 Options:
   -o, --out <dir>   Override output directory (default: src/problems)
@@ -732,7 +732,7 @@ const main = async () => {
         await stat(outPath);
         if (!force) {
             console.error(`${icon.warn} File already exists: ${outPath}`);
-            console.error(`${icon.info} Use --force to overwrite (e.g. pnpm new -- ${slug} --force)`);
+            console.error(`${icon.info} Use --force to overwrite (e.g. npm run new -- ${slug} --force)`);
             process.exit(1);
         }
     } catch {
@@ -819,8 +819,8 @@ const main = async () => {
     await ensureDir(outDir);
     await writeFile(outPath, content, "utf8");
     console.log(`${icon.ok} Created: ${outPath}`);
-    console.log(`${icon.info} Run once: pnpm solve -- ${outPath}`);
-    console.log(`${icon.info} Watch: pnpm watch -- ${outPath}`);
+    console.log(`${icon.info} Run once: npm run solve -- ${outPath}`);
+    console.log(`${icon.info} Watch: npm run watch -- ${outPath}`);
 };
 
 main().catch((error) => {
