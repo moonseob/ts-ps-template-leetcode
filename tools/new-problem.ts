@@ -40,9 +40,7 @@ const decodeHtml = (input: string) =>
         .replace(/&nbsp;/g, " ");
 
 const replaceSupSubTags = (value: string) =>
-    value
-        .replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, "^$1")
-        .replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, "_$1");
+    value.replace(/<sup[^>]*>([\s\S]*?)<\/sup>/gi, "^$1").replace(/<sub[^>]*>([\s\S]*?)<\/sub>/gi, "_$1");
 
 const captureCodeSpans = (html: string) => {
     const codeSpans: string[] = [];
@@ -561,10 +559,10 @@ const generateAsserts = (
 ) => {
     const helpersUsed = new Set<string>();
     if (!functionName) {
-    return {
-        code: "// TODO: Add asserts for class-based or custom API problems.",
-        helpersUsed,
-    };
+        return {
+            code: "// TODO: Add asserts for class-based or custom API problems.",
+            helpersUsed,
+        };
     }
 
     const paramTypes = params.map((param) => param.type);

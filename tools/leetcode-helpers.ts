@@ -55,16 +55,31 @@ export class TreeNode {
 
 export const buildTree = (values: Array<number | null> | null): TreeNode | null => {
     if (!values || values.length === 0) return null;
-    const nodes = values.map((value) => (value === null ? null : new TreeNode(value)));
-    for (let i = 0; i < nodes.length; i++) {
-        const node = nodes[i];
+    const rootValue = values[0];
+    if (rootValue === null) return null;
+
+    const root = new TreeNode(rootValue);
+    const queue: TreeNode[] = [root];
+    let index = 1;
+
+    while (queue.length > 0 && index < values.length) {
+        const node = queue.shift();
         if (!node) continue;
-        const leftIdx = 2 * i + 1;
-        const rightIdx = 2 * i + 2;
-        if (leftIdx < nodes.length) node.left = nodes[leftIdx];
-        if (rightIdx < nodes.length) node.right = nodes[rightIdx];
+
+        const leftValue = values[index++];
+        if (leftValue !== undefined && leftValue !== null) {
+            node.left = new TreeNode(leftValue);
+            queue.push(node.left);
+        }
+
+        const rightValue = values[index++];
+        if (rightValue !== undefined && rightValue !== null) {
+            node.right = new TreeNode(rightValue);
+            queue.push(node.right);
+        }
     }
-    return nodes[0];
+
+    return root;
 };
 
 export const treeToArray = (root: TreeNode | null): Array<number | null> => {
