@@ -819,7 +819,8 @@ const main = async () => {
     await ensureDir(outDir);
     await writeFile(outPath, content, "utf8");
     console.log(`${icon.ok} Created: ${outPath}`);
-    console.log(`${icon.info} Run: pnpm watch -- ${outPath}`);
+    console.log(`${icon.info} Run once: pnpm solve -- ${outPath}`);
+    console.log(`${icon.info} Watch: pnpm watch -- ${outPath}`);
 };
 
 main().catch((error) => {

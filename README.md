@@ -58,8 +58,22 @@ Options:
 ### 3) Solve and run tests
 
 ```bash
+# run once
+pnpm solve -- <slug>
+
+# run once with a file path
+pnpm solve -- src/problems/<slug>.ts
+
+# watch current file and rerun on save
+pnpm watch -- <slug>
+
+# watch with a file path
 pnpm watch -- src/problems/<slug>.ts
 ```
+
+Useful options:
+
+- `--timeout <ms>`: kill execution if it exceeds the limit (default: `3000`)
 
 The generated file includes:
 
@@ -67,7 +81,16 @@ The generated file includes:
 - Example tests using [`node:assert`](https://nodejs.org/api/assert.html) (best-effort parsing)
 - A solution function stub
 
-**Tests re-run on every save, significantly reducing the time from implementation to verification.**
+### 4) CLI runtime behavior
+
+The CLI wraps `assert` calls and prints concise output tailored for problem solving:
+
+- Always prints a summary (for example, `PASS 3/3 assertions (12ms)`), so successful runs are explicit.
+- Assertion failures show compact `expected` and `actual` values only.
+- Runtime errors are shortened to the essential message + first relevant source line.
+- Infinite loops or very slow cases are cut off by timeout with a clear `TIMEOUT` result.
+
+This keeps feedback close to what LeetCode users usually need while debugging quickly.
 
 Below is an example generated for [two-sum](https://leetcode.com/problems/two-sum/).
 
