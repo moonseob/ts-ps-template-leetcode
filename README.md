@@ -45,14 +45,14 @@ Optional flag:
 
 Correct:
 
-```diff
+```log
 RUN src/problems/two-sum.ts (timeout=3000ms)
 PASS 3/3 assertions (12ms)
 ```
 
 Wrong answer:
 
-```diff
+```log
 ASSERTION FAILED #2 (deepStrictEqual)
 expected: [ 1, 2 ]
 actual:   [ 2, 1 ]
@@ -61,9 +61,61 @@ FAIL 2/3 assertions passed (9ms)
 
 Run time exceeded:
 
-```diff
+```log
 RUN src/problems/some-problem.ts (timeout=3000ms)
 TIMEOUT exceeded 3000ms (src/problems/some-problem.ts)
+```
+
+Generated question example:
+
+```ts
+import assert from "node:assert";
+
+/**
+ * # Two Sum (#1)
+ * https://leetcode.com/problems/two-sum/
+ *
+ * Given an array of integers `nums` and an integer `target`, return _indices of the two numbers such that they add up
+ * to `target`_.
+ *
+ * You may assume that each input would have **_exactly_ one solution**, and you may not use the _same_ element twice.
+ *
+ * You can return the answer in any order.
+ *
+ * **Constraints:**
+ *
+ * - `2 <= nums.length <= 10^4`
+ * - `-10^9 <= nums[i] <= 10^9`
+ * - `-10^9 <= target <= 10^9`
+ * - **Only one valid answer exists.**
+ *
+ * **Follow-up:** Can you come up with an algorithm that is less than `O(n^2)` time complexity?
+ */
+function twoSum(nums: number[], target: number): number[] {
+
+};
+
+/**
+ * Example 1
+ * Input: `nums = [2,7,11,15], target = 9`
+ * Output: `[0,1]`
+ * Explanation: `Because nums[0] + nums[1] == 9, we return [0, 1].`
+ */
+assert.deepStrictEqual(twoSum([2,7,11,15], 9), [0,1]);
+
+/**
+ * Example 2
+ * Input: `nums = [3,2,4], target = 6`
+ * Output: `[1,2]`
+ */
+assert.deepStrictEqual(twoSum([3,2,4], 6), [1,2]);
+
+/**
+ * Example 3
+ * Input: `nums = [3,3], target = 6`
+ * Output: `[0,1]`
+ */
+assert.deepStrictEqual(twoSum([3,3], 6), [0,1]);
 ```
 
 ## Command Matrix
