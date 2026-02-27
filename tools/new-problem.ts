@@ -1,7 +1,11 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-const GRAPHQL_ENDPOINT = "https://leetcode.com/graphql";
+const LEETCODE_ORIGIN = "https://leetcode.com";
+const GRAPHQL_ENDPOINT = `${LEETCODE_ORIGIN}/graphql/`;
+const DEFAULT_USER_AGENT =
+    process.env.LEETCODE_USER_AGENT ??
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36";
 const COLOR = {
     reset: "\u001b[0m",
     bold: "\u001b[1m",
@@ -236,9 +240,121 @@ Options:
   -h, --help        Show this help message
 `;
 
+const REQUEST_TIMEOUT_MS = 15000;
+const RETRY_STATUSES = new Set([408, 425, 429, 499, 500, 502, 503, 504]);
+
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+const parseCookieHeader = (cookieHeader: string) => {
+    const cookies = new Map<string, string>();
+    for (const pair of cookieHeader.split(";")) {
+        const trimmed = pair.trim();
+        if (!trimmed) continue;
+        const separator = trimmed.indexOf("=");
+        if (separator <= 0) continue;
+        const name = trimmed.slice(0, separator).trim();
+        const value = trimmed.slice(separator + 1).trim();
+        if (!name || !value) continue;
+        cookies.set(name, value);
+    }
+    return cookies;
+};
+
+const parseSetCookie = (setCookie: string) => {
+    const firstSegment = setCookie.split(";")[0]?.trim();
+    if (!firstSegment) return null;
+    const separator = firstSegment.indexOf("=");
+    if (separator <= 0) return null;
+    const name = firstSegment.slice(0, separator).trim();
+    const value = firstSegment.slice(separator + 1).trim();
+    if (!name || !value) return null;
+    return { name, value };
+};
+
+const getSetCookieValues = (headers: Headers) => {
+    const nodeHeaders = headers as Headers & { getSetCookie?: () => string[] };
+    if (typeof nodeHeaders.getSetCookie === "function") {
+        return nodeHeaders.getSetCookie();
+    }
+
+    const fallback = headers.get("set-cookie");
+    if (!fallback) return [];
+    return [fallback];
+};
+
+const buildCookieHeader = async (slug: string) => {
+    const fromEnv = process.env.LEETCODE_COOKIE?.trim();
+    if (fromEnv) return fromEnv;
+
+    try {
+        const warmupResponse = await fetch(`${LEETCODE_ORIGIN}/problems/${slug}/`, {
+            method: "GET",
+            headers: {
+                Accept: "text/html,application/xhtml+xml",
+                "User-Agent": DEFAULT_USER_AGENT,
+            },
+            signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        const setCookies = getSetCookieValues(warmupResponse.headers);
+        if (setCookies.length === 0) return null;
+
+        const jar = new Map<string, string>();
+        for (const setCookie of setCookies) {
+            const parsed = parseSetCookie(setCookie);
+            if (!parsed) continue;
+            jar.set(parsed.name, parsed.value);
+        }
+        if (jar.size === 0) return null;
+
+        return Array.from(jar.entries())
+            .map(([name, value]) => `${name}=${value}`)
+            .join("; ");
+    } catch {
+        return null;
+    }
+};
+
+const buildGraphQLHeaders = async (slug: string, operationName: string) => {
+    const referer = `${LEETCODE_ORIGIN}/problems/${slug}/`;
+    const cookieHeader = await buildCookieHeader(slug);
+    const cookieJar = cookieHeader ? parseCookieHeader(cookieHeader) : new Map<string, string>();
+    const csrfToken = process.env.LEETCODE_CSRFTOKEN?.trim() || cookieJar.get("csrftoken") || null;
+
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Accept: "*/*",
+        Origin: LEETCODE_ORIGIN,
+        Referer: referer,
+        "User-Agent": DEFAULT_USER_AGENT,
+        "operation-name": operationName,
+    };
+    if (cookieHeader) headers.Cookie = cookieHeader;
+    if (csrfToken) headers["x-csrftoken"] = csrfToken;
+    return headers;
+};
+
+const fetchWithRetries = async (url: string, init: RequestInit, maxAttempts = 3) => {
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+            if (response.ok || attempt === maxAttempts || !RETRY_STATUSES.has(response.status)) {
+                return response;
+            }
+            lastError = new Error(`Request failed with status ${response.status}`);
+        } catch (error) {
+            lastError = error;
+            if (attempt === maxAttempts) throw error;
+        }
+        await sleep(250 * attempt);
+    }
+    throw lastError instanceof Error ? lastError : new Error("Request failed");
+};
+
 const fetchQuestion = async (slug: string): Promise<QuestionData> => {
+    const operationName = "questionData";
     const query = `
-        query questionData($titleSlug: String!) {
+        query ${operationName}($titleSlug: String!) {
             question(titleSlug: $titleSlug) {
                 questionId
                 title
@@ -254,19 +370,35 @@ const fetchQuestion = async (slug: string): Promise<QuestionData> => {
         }
     `;
 
-    const response = await fetch(GRAPHQL_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, variables: { titleSlug: slug } }),
-    });
+    const response = await fetchWithRetries(
+        GRAPHQL_ENDPOINT,
+        {
+            method: "POST",
+            headers: await buildGraphQLHeaders(slug, operationName),
+            body: JSON.stringify({ query, variables: { titleSlug: slug }, operationName }),
+        },
+        3,
+    );
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch problem data (${response.status})`);
+        const responsePreview = (await response.text()).replace(/\s+/g, " ").slice(0, 240);
+        const hint =
+            response.status === 403 || response.status === 499
+                ? " Try setting LEETCODE_COOKIE with your browser cookies."
+                : "";
+        throw new Error(`Failed to fetch problem data (${response.status}). ${responsePreview}${hint}`.trim());
     }
 
-    const json = (await response.json()) as { data?: { question?: QuestionData } };
+    const json = (await response.json()) as {
+        data?: { question?: QuestionData };
+        errors?: Array<{ message?: string }>;
+    };
     if (!json.data?.question) {
-        throw new Error("Problem not found or response malformed.");
+        const errorText = json.errors
+            ?.map((error) => error.message)
+            .filter(Boolean)
+            .join("; ");
+        throw new Error(errorText ? `Problem not found: ${errorText}` : "Problem not found or response malformed.");
     }
     return json.data.question;
 };

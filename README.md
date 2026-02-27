@@ -23,6 +23,17 @@ npm run new -- two-sum
 npm run new -- "https://leetcode.com/problems/two-sum/"
 ```
 
+If LeetCode blocks bot-like requests (`403` or `499`), export your browser cookie and retry:
+
+```bash
+export LEETCODE_COOKIE='csrftoken=...; LEETCODE_SESSION=...; INGRESSCOOKIE=...'
+# optional (auto-detected from LEETCODE_COOKIE when csrftoken exists)
+export LEETCODE_CSRFTOKEN='...'
+npm run new -- two-sum
+```
+
+`tools/new-problem.ts` also sends browser-like headers (`origin`, `referer`, `user-agent`, `operation-name`) and retries transient failures.
+
 ### 3. Solve and run
 
 ```bash
